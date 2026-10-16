@@ -1,13 +1,11 @@
 services:
   - type: web
     name: osint-bot
-    env: python
     plan: free
     healthCheckPath: /
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
     runtime: python
-    pythonVersion: "3.11.9"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9

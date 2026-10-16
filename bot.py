@@ -3,9 +3,11 @@ OSINT Telegram-бот. Один файл.
 Пробивает: телефон, email, username, IP, домен. Авто и лицо — заглушки.
 Запуск: BOT_TOKEN=xxx python bot.py
 Опционально: HIBP_KEY, NUMVERIFY_KEY
+Для Render free (web): параллельно поднимается HTTP на $PORT.
 """
 import asyncio, os, re, ipaddress, hashlib, logging, socket
 import aiohttp, phonenumbers, whois, dns.resolver
+from aiohttp import web
 from phonenumbers import geocoder, carrier, timezone as pn_tz
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
@@ -18,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 BOT_TOKEN        = os.environ["BOT_TOKEN"]
 HIBP_KEY         = os.getenv("HIBP_KEY", "")
 NUMVERIFY_KEY    = os.getenv("NUMVERIFY_KEY", "")
+PORT             = int(os.getenv("PORT", "10000"))
 UA               = {"User-Agent": "Mozilla/5.0 (osint-bot)"}
 
 
@@ -261,7 +264,21 @@ async def on_text(m: Message):
         await m.answer(out[i:i+3800], disable_web_page_preview=True)
 
 
+# ---------- HEALTHCHECK (Render free web) ----------
+async def _health(_): return web.Response(text="ok")
+
+
+async def _run_http():
+    app = web.Application()
+    app.router.add_get("/", _health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", PORT).start()
+    logging.info(f"HTTP healthcheck on :{PORT}")
+
+
 async def main():
+    await _run_http()
     await dp.start_polling(bot)
 
 
